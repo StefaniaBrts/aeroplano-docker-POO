@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aeroplano CRUD - TypeScript</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1a73e8; margin-bottom: 30px; }
+        .form-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #e1e4e8; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 14px; font-weight: 600; margin-bottom: 5px; color: #5f6368; }
+        input { padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; }
+        button { padding: 12px; background-color: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; font-weight: 600; margin-top: 10px; transition: background 0.2s; }
+        button:hover { background-color: #1557b0; }
+        .list-section { margin-top: 20px; }
+        .aeroplano-card { border: 1px solid #e1e4e8; padding: 15px; margin-bottom: 15px; border-radius: 8px; background: white; transition: transform 0.1s; }
+        .aeroplano-card:hover { transform: translateY(-2px); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f3f4; padding-bottom: 10px; margin-bottom: 10px; }
+        .card-id { font-weight: bold; color: #1a73e8; }
+        .card-model { font-size: 18px; font-weight: bold; color: #202124; }
+        .card-info { font-size: 13px; color: #5f6368; line-height: 1.5; }
+        .actions { display: flex; gap: 10px; }
+        .btn-delete { background-color: #d93025; padding: 6px 12px; font-size: 12px; }
+        .btn-delete:hover { background-color: #b3261e; }
+        .empty-msg { text-align: center; color: #70757a; font-style: italic; margin: 40px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gestión de Aeroplanos</h1>
+        
+        <div class="form-section">
+            <h3>Registrar Nuevo Aeroplano</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="id">ID</label>
+                    <input type="number" id="id" placeholder="Ej: 101">
+                </div>
+                <div class="form-group">
+                    <label for="modelo">Modelo</label>
+                    <input type="text" id="modelo" placeholder="Ej: Boeing 747">
+                </div>
+                <div class="form-group">
+                    <label for="neumaticos">N° Neumáticos</label>
+                    <input type="number" id="neumaticos" value="2">
+                </div>
+                <div class="form-group">
+                    <label for="amortiguadores">N° Amortiguadores</label>
+                    <input type="number" id="amortiguadores" value="3">
+                </div>
+            </div>
+            <button onclick="crearAeroplano()">Crear Aeroplano</button>
+        </div>
+
+        <div class="list-section">
+            <h3>Listado de Aeroplanos</h3>
+            <div id="aeroplano-lista">
+                <div class="empty-msg">Cargando aeroplanos...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/aeroplanos';
+
+        async function fetchAeroplanos() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                renderAeroplanos(data);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('aeroplano-lista').innerHTML = '<div class="empty-msg" style="color:red">Error al conectar con el servidor</div>';
+            }
+        }
+
+        function renderAeroplanos(aeroplanos) {
+            const lista = document.getElementById('aeroplano-lista');
+            if (aeroplanos.length === 0) {
+                lista.innerHTML = '<div class="empty-msg">No hay aeroplanos registrados.</div>';
+                return;
+            }
+
+            lista.innerHTML = aeroplanos.map(a => `
+                <div class="aeroplano-card">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-id">#${a.id}</span> - 
+                            <span class="card-model">${a.modelo}</span>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-delete" onclick="eliminarAeroplano(${a.id})">Eliminar</button>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        ${a.info}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function crearAeroplano() {
+            const id = document.getElementById('id').value;
+            const modelo = document.getElementById('modelo').value;
+            const numNeumaticos = document.getElementById('neumaticos').value;
+            const numAmortiguadores = document.getElementById('amortiguadores').value;
+
+            if (!id || !modelo) {
+                alert('Por favor, completa ID y Modelo');
+                return;
+            }
+
+            const body = {
+                id: parseInt(id),
+                modelo,
+                numNeumaticos: parseInt(numNeumaticos),
+                numAmortiguadores: parseInt(numAmortiguadores)
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (response.ok) {
+                    document.getElementById('id').value = '';
+                    document.getElementById('modelo').value = '';
+                    fetchAeroplanos();
+                } else {
+                    const err = await response.json();
+                    alert(err.message || 'Error al crear');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function eliminarAeroplano(id) {
+            if (!confirm('¿Estás seguro de eliminar este aeroplano?')) return;
+
+            try {
+                await fetch(\`\${API_URL}/\${id}\`, { method: 'DELETE' });
+                fetchAeroplanos();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Inicializar
+        fetchAeroplanos();
+    </script>
+</body>
+</html>
